@@ -8,6 +8,7 @@ interface UserSettings {
   openaiApiKey: string | null;
   openaiOrganization: string | null;
   openaiProjectId: string | null;
+  openaiModel: string | null;
 }
 
 // Set the runtime to edge for best performance
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
     }
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: userSettings.openaiModel ?? 'gpt-3.5-turbo',
       messages: messages.map((message: any) => ({
         role: message.role,
         content: message.content,

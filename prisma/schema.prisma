@@ -1,10 +1,10 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model Account {
@@ -13,15 +13,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -35,104 +34,105 @@ model Session {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  email         String       @unique
-  name          String?
-  password      String
-  role          String       @default("user")
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  settings      UserSettings?
-  alertRules    AlertRule[]
-  strategies    Strategy[]
-  trades        Trade[]
+  id                 String               @id @default(cuid())
+  email              String               @unique
+  name               String?
+  password           String
+  role               String               @default("user")
+  emailVerified      DateTime?
+  image              String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  accounts           Account[]
+  alertRules         AlertRule[]
   performanceMetrics PerformanceMetrics[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  sessions           Session[]
+  strategies         Strategy[]
+  trades             Trade[]
+  settings           UserSettings?
 }
 
 model UserSettings {
-  id               String  @id @default(cuid())
-  userId           String  @unique
-  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  openaiApiKey     String?
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  openaiApiKey       String?
   openaiOrganization String?
-  openaiProjectId  String?
-  tradingViewApiKey String?
-  telegramBotToken String?
-  updatedAt        DateTime @updatedAt
+  openaiProjectId    String?
+  openaiModel        String?  @default("gpt-3.5-turbo")
+  tradingViewApiKey  String?
+  telegramBotToken   String?
+  updatedAt          DateTime @updatedAt
 }
 
 model AlertRule {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  coin        String
-  condition   String
-  threshold   Float
-  channels    String[] // ["chat", "email", "telegram"]
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  userId    String
+  coin      String
+  condition String
+  threshold Float
+  channels  String[]
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Strategy {
-  id          String   @id @default(cuid())
+  id          String               @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
   description String?
-  conditions  Json     // Array of conditions
-  coins      String[] // Array of coin symbols
-  isActive    Boolean  @default(true)
-  trades      Trade[]
+  conditions  Json
+  coins       String[]
+  isActive    Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
   metrics     PerformanceMetrics[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades      Trade[]
 
   @@index([userId, createdAt])
 }
 
 model ExternalData {
-  id          String   @id @default(cuid())
-  source      String   // "dexscreener", "birdeye", "twitter"
-  data        Json
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  source    String
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([source, createdAt])
 }
 
 model MarketData {
-  id          String   @id @default(cuid())
-  symbol      String
-  price       Float
-  volume      Float
-  timestamp   DateTime
-  source      String   // "binance", "coinbase", etc.
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  symbol    String
+  price     Float
+  volume    Float
+  timestamp DateTime
+  source    String
+  createdAt DateTime @default(now())
 
   @@index([symbol, timestamp])
   @@index([source, timestamp])
 }
 
 model Trade {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  strategyId  String?
-  strategy    Strategy? @relation(fields: [strategyId], references: [id])
-  symbol      String
-  type        String   // "BUY" or "SELL"
-  amount      Float
-  price       Float
-  totalValue  Float
-  status      String   // "PENDING", "COMPLETED", "CANCELLED"
-  executedAt  DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(cuid())
+  userId     String
+  strategyId String?
+  symbol     String
+  type       String
+  amount     Float
+  price      Float
+  totalValue Float
+  status     String
+  executedAt DateTime
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  strategy   Strategy? @relation(fields: [strategyId], references: [id])
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, executedAt])
   @@index([strategyId, executedAt])
@@ -140,12 +140,10 @@ model Trade {
 }
 
 model PerformanceMetrics {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   strategyId  String?
-  strategy    Strategy? @relation(fields: [strategyId], references: [id])
-  period      String   // "DAILY", "WEEKLY", "MONTHLY", "YEARLY"
+  period      String
   startDate   DateTime
   endDate     DateTime
   totalTrades Int
@@ -153,9 +151,11 @@ model PerformanceMetrics {
   profitLoss  Float
   sharpeRatio Float?
   maxDrawdown Float?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  strategy    Strategy? @relation(fields: [strategyId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, period, startDate])
   @@index([strategyId, period, startDate])
-} 
+}

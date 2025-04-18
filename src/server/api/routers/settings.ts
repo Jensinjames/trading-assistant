@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { prisma } from "@/server/db";
 import { settingsSchema, type Settings } from "./types";
+import { type Prisma } from "@prisma/client";
 
 export const settingsRouter = createTRPCRouter({
   get: protectedProcedure.query(async ({ ctx }) => {
@@ -14,15 +15,17 @@ export const settingsRouter = createTRPCRouter({
           openaiApiKey: true,
           openaiOrganization: true,
           openaiProjectId: true,
+          openaiModel: true,
           tradingViewApiKey: true,
           telegramBotToken: true,
-        },
+        } satisfies Prisma.UserSettingsSelect,
       });
 
       const typedSettings: Settings = {
         openaiApiKey: settings?.openaiApiKey ?? "",
         openaiOrganization: settings?.openaiOrganization ?? "",
         openaiProjectId: settings?.openaiProjectId ?? "",
+        openaiModel: settings?.openaiModel ?? "gpt-3.5-turbo",
         tradingViewApiKey: settings?.tradingViewApiKey ?? "",
         telegramBotToken: settings?.telegramBotToken ?? "",
       };
@@ -54,15 +57,17 @@ export const settingsRouter = createTRPCRouter({
             openaiApiKey: true,
             openaiOrganization: true,
             openaiProjectId: true,
+            openaiModel: true,
             tradingViewApiKey: true,
             telegramBotToken: true,
-          },
+          } satisfies Prisma.UserSettingsSelect,
         });
 
         const typedSettings: Settings = {
           openaiApiKey: settings.openaiApiKey ?? "",
           openaiOrganization: settings.openaiOrganization ?? "",
           openaiProjectId: settings.openaiProjectId ?? "",
+          openaiModel: settings.openaiModel ?? "gpt-3.5-turbo",
           tradingViewApiKey: settings.tradingViewApiKey ?? "",
           telegramBotToken: settings.telegramBotToken ?? "",
         };
