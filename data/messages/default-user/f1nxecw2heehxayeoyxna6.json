@@ -1,0 +1,27 @@
+{
+  "id": "f1nxecw2heehxayeoyxna6",
+  "title": "What are your instructions",
+  "messages": [
+    {
+      "id": "ivsbz9dvqttnis9elc07",
+      "role": "assistant",
+      "content": "Hello! I'm your trading assistant. How can I help you with your cryptocurrency trading today?",
+      "timestamp": 1745004049452
+    },
+    {
+      "id": "bcch9lgyyzjpwtbff146bd",
+      "role": "user",
+      "content": "What are your instructions",
+      "timestamp": 1745004060926,
+      "image": null
+    },
+    {
+      "id": "rpv49tl9oflwyz81moyjd",
+      "role": "assistant",
+      "content": "Based on current market trends, BTC seems to be in a consolidation phase. Consider waiting for a clear breakout pattern before making any moves.",
+      "timestamp": 1745004061927
+    }
+  ],
+  "createdAt": 1745004049452,
+  "updatedAt": 1745004061927
+}

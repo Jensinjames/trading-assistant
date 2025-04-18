@@ -1,0 +1,10 @@
+{
+  "default-user": {
+    "openaiApiKey": "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",
+    "tradingViewApiKey": "WW4Sjf?Hy8VwZ@c",
+    "telegramBotToken": "",
+    "openaiModel": "chatgpt-4o-latest",
+    "openaiOrganization": "org-ogvj40bhrN647CPmNUX78a6j",
+    "openaiProjectId": "proj_gn7j9X58CHMpR1sbFhPOsavk"
+  }
+}
