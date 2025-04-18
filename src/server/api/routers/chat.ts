@@ -4,6 +4,8 @@ import OpenAI from 'openai';
 import { env } from '@/env.mjs';
 import { TRPCError } from '@trpc/server';
 import { observable } from '@trpc/server/observable';
+import { prisma } from '@/server/db';
+import { type UserSettings } from '@prisma/client';
 
 export const chatRouter = createTRPCRouter({
   streamChat: protectedProcedure
@@ -17,23 +19,27 @@ export const chatRouter = createTRPCRouter({
         ),
       })
     )
-    .mutation(async ({ input }) => {
-      if (!env.OPENAI_API_KEY) {
+    .mutation(async ({ ctx, input }) => {
+      const userSettings = await prisma.userSettings.findUnique({
+        where: { userId: ctx.session.user.id },
+      });
+
+      if (!userSettings?.openaiApiKey) {
         throw new TRPCError({
           code: 'PRECONDITION_FAILED',
-          message: 'OpenAI API key not found in environment variables',
+          message: 'OpenAI API key not configured. Please set it in your settings.',
         });
       }
 
       const openai = new OpenAI({
-        apiKey: env.OPENAI_API_KEY,
-        organization: process.env.OPENAI_ORGANIZATION,
-        project: process.env.OPENAI_PROJECT_ID,
+        apiKey: userSettings.openaiApiKey,
+        organization: userSettings.openaiOrganization ?? undefined,
+        project: userSettings.openaiProjectId ?? undefined,
       });
 
       return observable<string>((emit) => {
         const stream = openai.chat.completions.create({
-          model: 'gpt-4',
+          model: userSettings.openaiModel ?? 'gpt-3.5-turbo',
           messages: input.messages,
           stream: true,
         });
