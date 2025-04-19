@@ -6,8 +6,17 @@ import Link from 'next/link';
 import { loginSchema } from '@/types/auth';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuth } from '@/context/AuthContext';
+import SearchParamsWrapper from '@/components/SearchParamsWrapper';
 
 export default function LoginPage() {
+  return (
+    <SearchParamsWrapper>
+      <LoginContent />
+    </SearchParamsWrapper>
+  );
+}
+
+function LoginContent() {
   const router = useRouter();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);

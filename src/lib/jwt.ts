@@ -1,30 +1,36 @@
-import jwt from 'jsonwebtoken';
+import * as jose from 'jose';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'your-secret-key'
+);
 const TOKEN_EXPIRY = '24h';
 
-export interface JWTPayload {
+export interface JWTPayload extends jose.JWTPayload {
   userId: string;
   email?: string;
   role?: string;
+  [key: string]: unknown;
 }
 
-export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+export async function generateToken(payload: JWTPayload): Promise<string> {
+  return new jose.SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime(TOKEN_EXPIRY)
+    .sign(JWT_SECRET);
 }
 
-export function verifyToken(token: string): JWTPayload {
+export async function verifyToken(token: string): Promise<JWTPayload> {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    return decoded;
+    const { payload } = await jose.jwtVerify(token, JWT_SECRET);
+    return payload as JWTPayload;
   } catch (error) {
     throw new Error('Invalid token');
   }
 }
 
-export function decodeToken(token: string): JWTPayload | null {
+export async function decodeToken(token: string): Promise<JWTPayload | null> {
   try {
-    return jwt.decode(token) as JWTPayload;
+    return jose.decodeJwt(token) as JWTPayload;
   } catch {
     return null;
   }

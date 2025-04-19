@@ -25,7 +25,7 @@ export const strategyRouter = createTRPCRouter({
   create: protectedProcedure
     .input(strategySchema)
     .mutation(async ({ ctx, input }) => {
-      return prisma.strategy.create({
+      return ctx.prisma.strategy.create({
         data: {
           userId: ctx.session.user.id,
           name: input.name,
@@ -41,18 +41,19 @@ export const strategyRouter = createTRPCRouter({
       data: strategySchema,
     }))
     .mutation(async ({ ctx, input }) => {
-      const strategy = await prisma.strategy.findUnique({
+      const strategy = await ctx.prisma.strategy.findUnique({
         where: { id: input.id },
       });
 
-      if (!strategy || strategy.userId !== ctx.session.user.id) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Strategy not found',
-        });
+      if (!strategy) {
+        throw new Error('Strategy not found');
       }
 
-      return prisma.strategy.update({
+      if (strategy.userId !== ctx.session.user.id) {
+        throw new Error('Not authorized');
+      }
+
+      return ctx.prisma.strategy.update({
         where: { id: input.id },
         data: {
           name: input.data.name,
@@ -65,24 +66,25 @@ export const strategyRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const strategy = await prisma.strategy.findUnique({
+      const strategy = await ctx.prisma.strategy.findUnique({
         where: { id: input.id },
       });
 
-      if (!strategy || strategy.userId !== ctx.session.user.id) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Strategy not found',
-        });
+      if (!strategy) {
+        throw new Error('Strategy not found');
       }
 
-      return prisma.strategy.delete({
+      if (strategy.userId !== ctx.session.user.id) {
+        throw new Error('Not authorized');
+      }
+
+      return ctx.prisma.strategy.delete({
         where: { id: input.id },
       });
     }),
 
   list: protectedProcedure.query(({ ctx }) => {
-    return prisma.strategy.findMany({
+    return ctx.prisma.strategy.findMany({
       where: { userId: ctx.session.user.id },
       orderBy: { updatedAt: 'desc' },
     });
@@ -93,7 +95,7 @@ export const strategyRouter = createTRPCRouter({
       id: z.string(),
     }))
     .query(async ({ ctx, input }) => {
-      const strategy = await prisma.strategy.findUnique({
+      const strategy = await ctx.prisma.strategy.findUnique({
         where: { id: input.id },
       });
 
@@ -169,4 +171,11 @@ export const strategyRouter = createTRPCRouter({
 
       return results;
     }),
+
+  getAll: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.prisma.strategy.findMany({
+      where: { userId: ctx.session.user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }),
 }); 

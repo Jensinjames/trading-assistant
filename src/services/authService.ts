@@ -54,7 +54,7 @@ export class AuthService {
       });
 
       // Generate token with appropriate claims
-      const token = generateToken({
+      const token = await generateToken({
         userId: user.id,
         email: user.email!,
         role: 'user', // Default role for new users
@@ -107,7 +107,7 @@ export class AuthService {
       }
 
       // Generate token with appropriate claims
-      const token = generateToken({
+      const token = await generateToken({
         userId: user.id,
         email: user.email!,
         role: 'user', // Default role since role field doesn't exist on User model
@@ -140,7 +140,7 @@ export class AuthService {
 
   static async validateToken(token: string): Promise<AuthUser> {
     try {
-      const decoded = verifyToken(token);
+      const decoded = await verifyToken(token);
       
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },

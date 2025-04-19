@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createChart, ColorType } from 'lightweight-charts';
 import html2canvas from 'html2canvas';
 import MainLayout from '@/components/layout/MainLayout';
+import SearchParamsWrapper from '@/components/SearchParamsWrapper';
 
 interface ChartData {
   time: string;
@@ -23,6 +24,14 @@ interface Alert {
 }
 
 export default function DashboardPage() {
+  return (
+    <SearchParamsWrapper>
+      <DashboardContent />
+    </SearchParamsWrapper>
+  );
+}
+
+function DashboardContent() {
   const [selectedCoin, setSelectedCoin] = useState('BTC');
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [analysis, setAnalysis] = useState<string>('');

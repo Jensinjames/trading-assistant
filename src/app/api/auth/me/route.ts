@@ -1,23 +1,26 @@
 import { NextResponse } from 'next/server';
-import { AuthService } from '@/services/authService';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
-export async function GET(request: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
   try {
-    const authHeader = request.headers.get('authorization');
+    const session = await getServerSession(authOptions);
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!session?.user) {
       return NextResponse.json(
-        { error: 'Missing or invalid authorization header' },
+        { error: 'Not authenticated' },
         { status: 401 }
       );
     }
     
-    const token = authHeader.split(' ')[1];
-    
-    // Validate token and get user info
-    const user = await AuthService.validateToken(token);
-    
-    return NextResponse.json(user);
+    return NextResponse.json({
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name,
+      image: session.user.image,
+    });
   } catch (error: any) {
     console.error('Auth verification error:', error);
     return NextResponse.json(

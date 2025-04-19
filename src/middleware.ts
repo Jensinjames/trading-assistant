@@ -13,7 +13,7 @@ const publicRoutes = [
   '/favicon.ico',
 ];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Skip authentication for public routes
@@ -38,7 +38,7 @@ export function middleware(request: NextRequest) {
 
   try {
     // Verify the JWT token
-    const decoded = verifyToken(token);
+    const decoded = await verifyToken(token);
     
     // Add the verified user info to the request headers
     const requestHeaders = new Headers(request.headers);
@@ -63,7 +63,7 @@ export function middleware(request: NextRequest) {
 }
 
 // Handle API authentication
-function handleApiAuthentication(request: NextRequest) {
+async function handleApiAuthentication(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -83,7 +83,7 @@ function handleApiAuthentication(request: NextRequest) {
   
   try {
     // Verify the JWT token
-    const decoded = verifyToken(token);
+    const decoded = await verifyToken(token);
 
     // Add the verified user info to the request headers
     const requestHeaders = new Headers(request.headers);
@@ -118,10 +118,11 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
+     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ]
 } 

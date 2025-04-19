@@ -8,8 +8,17 @@ import {
   CurrencyDollarIcon,
   ChartBarIcon
 } from '@heroicons/react/24/outline';
+import SearchParamsWrapper from '@/components/SearchParamsWrapper';
 
-const DashboardPage = () => {
+export default function HomePage() {
+  return (
+    <SearchParamsWrapper>
+      <HomeContent />
+    </SearchParamsWrapper>
+  );
+}
+
+function HomeContent() {
   const marketOverview = [
     {
       title: 'Total Market Cap',
@@ -76,6 +85,4 @@ const DashboardPage = () => {
       <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 dark:border-blue-400 border-t-transparent"></div>
     </div>
   );
-};
-
-export default DashboardPage;
+}

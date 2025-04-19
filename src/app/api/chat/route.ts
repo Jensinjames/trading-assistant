@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/server/db';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
@@ -13,12 +13,18 @@ interface UserSettings {
   openaiModel: string | null;
 }
 
-// Create a new ratelimiter instance
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(10, '1m'), // 10 requests per minute
-  analytics: true,
-});
+// Create a new ratelimiter instance if Redis is configured
+let ratelimit: Ratelimit | null = null;
+try {
+  const redis = Redis.fromEnv();
+  ratelimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(10, '1m'),
+    analytics: true,
+  });
+} catch (error) {
+  console.warn('Redis configuration not found. Rate limiting disabled.');
+}
 
 // Constants for token limits
 const MAX_INPUT_TOKENS = 4000;
@@ -35,16 +41,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Apply rate limiting
-    const { success, reset } = await ratelimit.limit(session.user.id);
-    if (!success) {
-      return NextResponse.json(
-        { 
-          error: 'Rate limit exceeded',
-          resetAt: reset
-        },
-        { status: 429 }
-      );
+    // Apply rate limiting if configured
+    if (ratelimit) {
+      const { success, reset } = await ratelimit.limit(session.user.id);
+      if (!success) {
+        return NextResponse.json(
+          { 
+            error: 'Rate limit exceeded',
+            resetAt: reset
+          },
+          { status: 429 }
+        );
+      }
     }
 
     // Get user settings

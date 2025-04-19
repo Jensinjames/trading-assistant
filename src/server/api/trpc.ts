@@ -3,13 +3,15 @@ import { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
 import { getServerSession } from 'next-auth';
 import superjson from 'superjson';
 import { ZodError } from 'zod';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/server/db';
 
 export const createTRPCContext = async (opts: FetchCreateContextFnOptions) => {
   const session = await getServerSession(authOptions);
   return {
     session,
     headers: opts.req.headers,
+    prisma,
   };
 };
 

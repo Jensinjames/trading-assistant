@@ -11,6 +11,7 @@ import {
   AdjustmentsHorizontalIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
+import SearchParamsWrapper from '@/components/SearchParamsWrapper';
 
 interface Cryptocurrency {
   id: string;
@@ -28,6 +29,14 @@ interface Cryptocurrency {
 }
 
 export default function MarketPage() {
+  return (
+    <SearchParamsWrapper>
+      <MarketContent />
+    </SearchParamsWrapper>
+  );
+}
+
+function MarketContent() {
   const [cryptocurrencies, setCryptocurrencies] = useState<Cryptocurrency[]>([]);
   const [filteredCryptos, setFilteredCryptos] = useState<Cryptocurrency[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -195,10 +204,13 @@ export default function MarketPage() {
     
     // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
-      if (a[sortConfig.key] < b[sortConfig.key]) {
+      const aValue = a[sortConfig.key] ?? 0;
+      const bValue = b[sortConfig.key] ?? 0;
+      
+      if (aValue < bValue) {
         return sortConfig.direction === 'ascending' ? -1 : 1;
       }
-      if (a[sortConfig.key] > b[sortConfig.key]) {
+      if (aValue > bValue) {
         return sortConfig.direction === 'ascending' ? 1 : -1;
       }
       return 0;

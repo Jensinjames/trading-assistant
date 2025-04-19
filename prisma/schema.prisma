@@ -51,6 +51,7 @@ model User {
   trades             Trade[]
   settings           UserSettings?
   chatLogs           ChatLog[]
+  messages           Message[]
 }
 
 model UserSettings {
@@ -171,4 +172,15 @@ model PerformanceMetrics {
 
   @@index([userId, period, startDate])
   @@index([strategyId, period, startDate])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }

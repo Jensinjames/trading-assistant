@@ -4,12 +4,16 @@ import {
   addMessageToThread 
 } from '@/lib/messageStorage';
 import OpenAI from 'openai';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/server/db';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  organization: process.env.OPENAI_ORGANIZATION,
-  project: process.env.OPENAI_PROJECT_ID,
-});
+interface UserSettings {
+  openaiApiKey: string | null;
+  openaiOrganization: string | null;
+  openaiProjectId: string | null;
+  openaiModel: string | null;
+}
 
 // GET /api/chat/threads/[threadId]/messages - Get all messages in a thread
 export async function GET(
@@ -17,10 +21,17 @@ export async function GET(
   { params }: { params: { threadId: string } }
 ) {
   try {
-    const userId = 'default-user';
-    const { threadId } = params;
+    const session = await getServerSession(authOptions);
     
-    const thread = getChatThread(userId, threadId);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { threadId } = params;
+    const thread = getChatThread(session.user.id, threadId);
     
     if (!thread) {
       return NextResponse.json(
@@ -45,54 +56,80 @@ export async function POST(
   { params }: { params: { threadId: string } }
 ) {
   try {
-    const userId = 'default-user';
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get user settings
+    const userSettings = (await prisma.userSettings.findUnique({
+      where: { userId: session.user.id },
+    })) as UserSettings | null;
+
+    if (!userSettings?.openaiApiKey) {
+      return NextResponse.json(
+        { error: 'OpenAI API key not configured. Please set it in your settings.' },
+        { status: 400 }
+      );
+    }
+
+    // Create OpenAI client with user's API key
+    const openai = new OpenAI({
+      apiKey: userSettings.openaiApiKey,
+      organization: userSettings.openaiOrganization ?? undefined,
+      project: userSettings.openaiProjectId ?? undefined,
+    });
+
     const { threadId } = params;
-    const { role, content, image } = await request.json();
-    
-    if (!role || !content) {
-      return NextResponse.json(
-        { error: 'Role and content are required' },
-        { status: 400 }
-      );
-    }
-    
-    if (role !== 'user' && role !== 'assistant' && role !== 'system') {
-      return NextResponse.json(
-        { error: 'Invalid role. Must be "user", "assistant", or "system"' },
-        { status: 400 }
-      );
-    }
-    
-    const message = addMessageToThread(userId, threadId, role, content, image);
-    
+    const { message } = await request.json();
+
     if (!message) {
+      return NextResponse.json(
+        { error: 'Message is required' },
+        { status: 400 }
+      );
+    }
+
+    const thread = getChatThread(session.user.id, threadId);
+    
+    if (!thread) {
       return NextResponse.json(
         { error: 'Chat thread not found' },
         { status: 404 }
       );
     }
-    
-    // Generate a simple AI response (in a real app, this would call an AI service)
-    if (role === 'user') {
-      setTimeout(() => {
-        const responses = [
-          "Based on current market trends, BTC seems to be in a consolidation phase. Consider waiting for a clear breakout pattern before making any moves.",
-          "I've analyzed the ETH chart and noticed a bullish divergence on the RSI. This could indicate a potential trend reversal in the coming days.",
-          "The recent volume spike in SOL is noteworthy. Historically, this has preceded significant price movements. Keep a close eye on support levels.",
-          "Market sentiment indicators are showing extreme fear right now. Historically, this has been a good time for accumulation of quality assets for long-term positions.",
-          "Your portfolio currently has a high correlation coefficient. Consider diversifying into assets with lower correlation to BTC to reduce overall volatility."
-        ];
-        
-        const aiResponse = responses[Math.floor(Math.random() * responses.length)];
-        addMessageToThread(userId, threadId, 'assistant', aiResponse);
-      }, 1000);
-    }
-    
-    return NextResponse.json(message);
-  } catch (error) {
-    console.error('Error adding chat message:', error);
+
+    // Add the user's message to the thread
+    addMessageToThread(session.user.id, threadId, 'user', message);
+
+    // Get AI response
+    const response = await openai.chat.completions.create({
+      model: userSettings.openaiModel ?? 'gpt-3.5-turbo',
+      messages: [
+        ...thread.messages,
+        { role: 'user', content: message }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000,
+    });
+
+    const aiMessage = response.choices[0].message;
+
+    // Add the AI's response to the thread
+    addMessageToThread(session.user.id, threadId, aiMessage.role, aiMessage.content || '');
+
+    return NextResponse.json({
+      role: aiMessage.role,
+      content: aiMessage.content,
+    });
+  } catch (error: any) {
+    console.error('Error processing chat message:', error);
     return NextResponse.json(
-      { error: 'Failed to add chat message' },
+      { error: error.message || 'Failed to process chat message' },
       { status: 500 }
     );
   }
