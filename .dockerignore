@@ -7,4 +7,6 @@ README.md
 .git
 .env
 .env.*
-!.env.example 
+!.env.example
+!prisma/schema.prisma
+!prisma/migrations/ 
