@@ -8,6 +8,7 @@ import {
   ArrowTrendingDownIcon,
   FireIcon
 } from '@heroicons/react/24/outline';
+import SearchParamsWrapper from '@/components/SearchParamsWrapper';
 
 interface NFTCollection {
   id: string;
@@ -23,6 +24,14 @@ interface NFTCollection {
 }
 
 export default function NFTPage() {
+  return (
+    <SearchParamsWrapper>
+      <NFTContent />
+    </SearchParamsWrapper>
+  );
+}
+
+function NFTContent() {
   const [collections, setCollections] = useState<NFTCollection[]>([]);
   const [filteredCollections, setFilteredCollections] = useState<NFTCollection[]>([]);
   const [searchTerm, setSearchTerm] = useState('');

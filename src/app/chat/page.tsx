@@ -11,6 +11,7 @@ import {
   StopCircleIcon,
   PhotoIcon
 } from '@heroicons/react/24/outline';
+import SearchParamsWrapper from '@/components/SearchParamsWrapper';
 
 interface Message {
   id: string;
@@ -29,6 +30,14 @@ interface ChatThread {
 }
 
 export default function ChatPage() {
+  return (
+    <SearchParamsWrapper>
+      <ChatContent />
+    </SearchParamsWrapper>
+  );
+}
+
+function ChatContent() {
   const searchParams = useSearchParams();
   const threadParam = searchParams.get('thread');
   const [threads, setThreads] = useState<ChatThread[]>([]);

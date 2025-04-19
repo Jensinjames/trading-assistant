@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { MagnifyingGlassIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
+import SearchParamsWrapper from '@/components/SearchParamsWrapper';
 
 interface Exchange {
   id: string;
@@ -17,6 +18,14 @@ interface Exchange {
 }
 
 export default function ExchangesPage() {
+  return (
+    <SearchParamsWrapper>
+      <ExchangesContent />
+    </SearchParamsWrapper>
+  );
+}
+
+function ExchangesContent() {
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [filteredExchanges, setFilteredExchanges] = useState<Exchange[]>([]);
   const [searchTerm, setSearchTerm] = useState('');

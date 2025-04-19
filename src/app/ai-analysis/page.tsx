@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { SparklesIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import SearchParamsWrapper from '@/components/SearchParamsWrapper';
 
 interface MarketAnalysis {
   overview: string;
@@ -20,6 +21,14 @@ interface MarketAnalysis {
 }
 
 export default function AIAnalysisPage() {
+  return (
+    <SearchParamsWrapper>
+      <AIAnalysisContent />
+    </SearchParamsWrapper>
+  );
+}
+
+function AIAnalysisContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [analysis, setAnalysis] = useState<MarketAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);

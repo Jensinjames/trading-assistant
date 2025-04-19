@@ -10,6 +10,7 @@ import {
   ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon } from '@heroicons/react/24/solid';
+import SearchParamsWrapper from '@/components/SearchParamsWrapper';
 
 interface NewListing {
   id: string;
@@ -27,6 +28,14 @@ interface NewListing {
 }
 
 export default function NewListingsPage() {
+  return (
+    <SearchParamsWrapper>
+      <NewListingsContent />
+    </SearchParamsWrapper>
+  );
+}
+
+function NewListingsContent() {
   const [listings, setListings] = useState<NewListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

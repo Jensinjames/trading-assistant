@@ -6,8 +6,17 @@ import { useTrending, TrendingCoin } from '@/hooks/useTrending';
 import TrendingCoinsList from '@/components/trending/TrendingCoinsList';
 import TrendingCategories from '@/components/trending/TrendingCategories';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import SearchParamsWrapper from '@/components/SearchParamsWrapper';
 
 export default function TrendingPage() {
+  return (
+    <SearchParamsWrapper>
+      <TrendingContent />
+    </SearchParamsWrapper>
+  );
+}
+
+function TrendingContent() {
   const { trendingCoins, isLoading, error } = useTrending();
   const [filteredCoins, setFilteredCoins] = useState<TrendingCoin[]>([]);
   const [searchTerm, setSearchTerm] = useState('');

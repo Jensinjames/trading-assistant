@@ -8,6 +8,7 @@ import {
   PlusIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
+import SearchParamsWrapper from '@/components/SearchParamsWrapper';
 
 interface Asset {
   id: string;
@@ -21,6 +22,14 @@ interface Asset {
 }
 
 export default function PortfolioPage() {
+  return (
+    <SearchParamsWrapper>
+      <PortfolioContent />
+    </SearchParamsWrapper>
+  );
+}
+
+function PortfolioContent() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [totalValue, setTotalValue] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
