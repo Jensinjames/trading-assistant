@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect, ChangeEvent } from 'react';
-import { useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import {
   PlusIcon,
@@ -12,6 +11,7 @@ import {
   PhotoIcon
 } from '@heroicons/react/24/outline';
 import SearchParamsWrapper from '@/components/SearchParamsWrapper';
+import { useSearchParamsContext } from '@/components/SearchParamsContent';
 
 interface Message {
   id: string;
@@ -38,40 +38,13 @@ export default function ChatPage() {
 }
 
 function ChatContent() {
-  const searchParams = useSearchParams();
-  const threadParam = searchParams.get('thread');
+  const searchParams = useSearchParamsContext();
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [currentThread, setCurrentThread] = useState<ChatThread | null>(null);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recognition = useRef<any>(null);
-  const synth = useRef<SpeechSynthesis | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Initialize Web Speech API
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        recognition.current = new SpeechRecognition();
-        recognition.current.continuous = true;
-        recognition.current.interimResults = true;
-        
-        recognition.current.onresult = (event: any) => {
-          const transcript = Array.from(event.results)
-            .map((result: any) => result[0].transcript)
-            .join('');
-          setInput(transcript);
-        };
-      }
-      
-      synth.current = window.speechSynthesis;
-    }
-  }, []);
 
   // Load chat threads
   useEffect(() => {
@@ -80,13 +53,15 @@ function ChatContent() {
 
   // If thread param exists, load that thread
   useEffect(() => {
-    if (threadParam && threads.length > 0) {
-      const thread = threads.find(t => t.id === threadParam);
+    const threadId = searchParams.get('thread');
+    if (threadId && threads.length > 0) {
+      const thread = threads.find((t) => t.id === threadId);
       if (thread) {
+        setCurrentThread(thread);
         loadThread(thread.id);
       }
     }
-  }, [threadParam, threads]);
+  }, [searchParams, threads]);
 
   const fetchThreads = async () => {
     try {
@@ -100,7 +75,6 @@ function ChatContent() {
       const data = await response.json();
       setThreads(data);
       
-      // If we have threads but no current thread, set the most recent one
       if (data.length > 0 && !currentThread) {
         await loadThread(data[0].id);
       } else if (data.length === 0) {
@@ -162,7 +136,6 @@ function ChatContent() {
       
       setThreads(prev => prev.filter(thread => thread.id !== threadId));
       
-      // If the deleted thread is the current one, switch to another thread or create a new one
       if (currentThread && currentThread.id === threadId) {
         const remainingThreads = threads.filter(thread => thread.id !== threadId);
         if (remainingThreads.length > 0) {
@@ -176,45 +149,20 @@ function ChatContent() {
     }
   };
 
-  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setSelectedImage(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const removeSelectedImage = () => {
-    setSelectedImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if ((!input.trim() && !selectedImage) || isSending || !currentThread) return;
+    if (!input.trim() || isSending || !currentThread) return;
     
     setIsSending(true);
     
     try {
-      // First, add the user's message to the thread
       const messageResponse = await fetch(`/api/chat/threads/${currentThread.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          role: 'user', 
+          role: 'user',
           content: input,
-          image: selectedImage
         })
       });
       
@@ -222,57 +170,12 @@ function ChatContent() {
         throw new Error('Failed to send message');
       }
 
-      // Get AI response
-      const apiEndpoint = selectedImage ? '/api/chat/vision' : '/api/chat';
-      const aiResponse = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            ...currentThread.messages,
-            { role: 'user', content: input || 'What do you see in this image?' }
-          ],
-          image: selectedImage
-        })
-      });
-
-      if (!aiResponse.ok) {
-        throw new Error('Failed to get AI response');
-      }
-
-      const aiReply = await aiResponse.json();
-      
-      // Add AI response to thread
-      await fetch(`/api/chat/threads/${currentThread.id}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role: 'assistant',
-          content: aiReply.content
-        })
-      });
-      
       setInput('');
-      setSelectedImage(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      
-      // Reload thread to get all messages
       await loadThread(currentThread.id);
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
       setIsSending(false);
-    }
-  };
-
-  const toggleVoice = () => {
-    setVoiceEnabled(!voiceEnabled);
-    if (!voiceEnabled) {
-      recognition.current?.start();
-    } else {
-      recognition.current?.stop();
     }
   };
 
@@ -358,13 +261,6 @@ function ChatContent() {
                         : 'bg-gray-100 dark:bg-gray-700 dark:text-white'
                     }`}
                   >
-                    {message.image && (
-                      <img
-                        src={message.image}
-                        alt="Uploaded content"
-                        className="max-w-full h-auto rounded-lg mb-2"
-                      />
-                    )}
                     <p className="whitespace-pre-wrap">{message.content}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
                       {formatDate(message.timestamp)}
@@ -375,76 +271,24 @@ function ChatContent() {
               </div>
               
               <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                <form onSubmit={sendMessage} className="space-y-4">
-                  {selectedImage && (
-                    <div className="relative">
-                      <img
-                        src={selectedImage}
-                        alt="Selected"
-                        className="max-h-48 rounded-lg"
-                      />
-                      <button
-                        type="button"
-                        onClick={removeSelectedImage}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                        aria-label="Remove image"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder="Type your message..."
-                      className="flex-1 p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      ref={fileInputRef}
-                      className="hidden"
-                      id="image-upload"
-                      aria-label="Upload image"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                      aria-label="Upload image"
-                    >
-                      <PhotoIcon className="h-6 w-6" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={toggleVoice}
-                      className={`p-2 ${
-                        voiceEnabled
-                          ? 'text-red-500 hover:text-red-700'
-                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                      }`}
-                      aria-label={voiceEnabled ? "Stop voice recording" : "Start voice recording"}
-                    >
-                      {voiceEnabled ? (
-                        <StopCircleIcon className="h-6 w-6" />
-                      ) : (
-                        <MicrophoneIcon className="h-6 w-6" />
-                      )}
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSending}
-                      className={`p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ${
-                        isSending ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                      aria-label="Send message"
-                    >
-                      <PaperAirplaneIcon className="h-6 w-6" />
-                    </button>
-                  </div>
+                <form onSubmit={sendMessage} className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Type your message..."
+                    className="flex-1 p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSending}
+                    className={`p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 ${
+                      isSending ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                    aria-label="Send message"
+                  >
+                    <PaperAirplaneIcon className="h-6 w-6" />
+                  </button>
                 </form>
               </div>
             </>

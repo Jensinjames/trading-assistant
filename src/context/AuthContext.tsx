@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation'
+import { useSearchParamsContext as useSearchParams } from '@/components/SearchParamsContent';
 import { AuthUser } from '@/types/auth';
 import Cookies from 'js-cookie';
 

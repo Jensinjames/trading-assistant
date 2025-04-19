@@ -1,15 +1,23 @@
-# fly.toml app configuration file generated for trading-assistant-dark-wave-5139 on 2025-04-19T09:35:50-05:00
+# fly.toml app configuration file generated for trading-assistant-divine-frost-7376 on 2025-04-19T12:11:45-05:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'trading-assistant-dark-wave-5139'
+app = 'trading-assistant-divine-frost-7376'
 primary_region = 'dfw'
 
 [build]
+  dockerfile = 'Dockerfile'
+
+  [build.args]
+    NEXT_PUBLIC_EXAMPLE = 'Value goes here'
+
+[env]
+  NODE_ENV = 'production'
+  PORT = '8080'
 
 [http_service]
-  internal_port = 3000
+  internal_port = 8080
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
@@ -17,6 +25,6 @@ primary_region = 'dfw'
   processes = ['app']
 
 [[vm]]
-  memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+  memory_mb = 1024

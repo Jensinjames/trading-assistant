@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "./node_modules/.prisma/client"
 }
 
 datasource db {
@@ -178,9 +179,11 @@ model Message {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  threadId  String?
   role      String
   content   String   @db.Text
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+  @@index([threadId, createdAt])
 }

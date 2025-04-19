@@ -6,9 +6,17 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 COPY prisma ./prisma
-RUN npm ci
+RUN \
+  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then npm ci; \
+  elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i --frozen-lockfile; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
+
+# Generate Prisma Client
+RUN npx prisma generate
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -18,12 +26,9 @@ COPY --from=deps /app/prisma ./prisma
 COPY . .
 
 # Next.js collects completely anonymous telemetry data about general usage.
-# Learn more about what data is collected at https://nextjs.org/telemetry
+# Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED 1
-
-# Generate Prisma Client
-RUN npx prisma generate
 
 RUN npm run build
 
@@ -48,13 +53,17 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/start.sh ./start.sh
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 8080
 
-ENV PORT 3000
-# set hostname to localhost
+ENV PORT 8080
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"] 
+# Make the startup script executable
+RUN chmod +x ./start.sh
+
+# Use the startup script instead of directly running server.js
+CMD ["./start.sh"] 

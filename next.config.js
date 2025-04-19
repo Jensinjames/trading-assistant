@@ -8,6 +8,14 @@ const nextConfig = {
     config.resolve.alias['@'] = path.resolve(__dirname, 'src');
     return config;
   },
+  output: 'standalone',
+  images: {
+    domains: [
+      'i.seadn.io',
+      'assets.coingecko.com',
+      'avatars.githubusercontent.com'
+    ],
+  }
 };
 
 module.exports = nextConfig; 

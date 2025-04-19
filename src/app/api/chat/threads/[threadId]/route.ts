@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { 
-  getChatThread, 
-  deleteChatThread 
-} from '@/lib/messageStorage';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/server/db';
 
 // GET /api/chat/threads/[threadId] - Get a specific thread
 export async function GET(
@@ -10,17 +9,41 @@ export async function GET(
   { params }: { params: { threadId: string } }
 ) {
   try {
-    const userId = 'default-user';
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { threadId } = params;
     
-    const thread = getChatThread(userId, threadId);
+    const messages = await prisma.message.findMany({
+      where: {
+        userId: session.user.id,
+        id: threadId,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
     
-    if (!thread) {
+    if (!messages.length) {
       return NextResponse.json(
         { error: 'Chat thread not found' },
         { status: 404 }
       );
     }
+
+    const thread = {
+      id: threadId,
+      title: messages[0].content.slice(0, 30) + (messages[0].content.length > 30 ? '...' : ''),
+      messages,
+      createdAt: messages[0].createdAt.getTime(),
+      updatedAt: messages[messages.length - 1].createdAt.getTime(),
+    };
     
     return NextResponse.json(thread);
   } catch (error) {
@@ -32,23 +55,29 @@ export async function GET(
   }
 }
 
-// DELETE /api/chat/threads/[threadId] - Delete a specific thread
+// DELETE /api/chat/threads/[threadId] - Delete a thread
 export async function DELETE(
   request: Request,
   { params }: { params: { threadId: string } }
 ) {
   try {
-    const userId = 'default-user';
-    const { threadId } = params;
+    const session = await getServerSession(authOptions);
     
-    const success = deleteChatThread(userId, threadId);
-    
-    if (!success) {
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Failed to delete chat thread' },
-        { status: 404 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
+
+    const { threadId } = params;
+    
+    await prisma.message.deleteMany({
+      where: {
+        userId: session.user.id,
+        id: threadId,
+      },
+    });
     
     return NextResponse.json({ success: true });
   } catch (error) {
