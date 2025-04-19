@@ -50,6 +50,7 @@ model User {
   strategies         Strategy[]
   trades             Trade[]
   settings           UserSettings?
+  chatLogs           ChatLog[]
 }
 
 model UserSettings {
@@ -63,6 +64,18 @@ model UserSettings {
   tradingViewApiKey  String?
   telegramBotToken   String?
   updatedAt          DateTime @updatedAt
+}
+
+model ChatLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  input     String   @db.Text
+  output    String   @db.Text
+  model     String
+  timestamp DateTime @default(now())
+
+  @@index([userId, timestamp])
 }
 
 model AlertRule {

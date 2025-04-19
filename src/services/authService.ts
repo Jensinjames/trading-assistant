@@ -68,6 +68,9 @@ export class AuthService {
           role: 'user', // Default role since role field doesn't exist on User model
           settings: {
             openaiApiKey: user.settings?.openaiApiKey || undefined,
+            openaiOrganization: user.settings?.openaiOrganization || undefined,
+            openaiProjectId: user.settings?.openaiProjectId || undefined,
+            openaiModel: user.settings?.openaiModel || 'gpt-3.5-turbo',
             tradingViewApiKey: user.settings?.tradingViewApiKey || undefined, 
             telegramBotToken: user.settings?.telegramBotToken || undefined
           },
@@ -118,6 +121,9 @@ export class AuthService {
           role: 'user', // Default role since role field doesn't exist on User model
           settings: {
             openaiApiKey: user.settings?.openaiApiKey || undefined,
+            openaiOrganization: user.settings?.openaiOrganization || undefined,
+            openaiProjectId: user.settings?.openaiProjectId || undefined,
+            openaiModel: user.settings?.openaiModel || 'gpt-3.5-turbo',
             tradingViewApiKey: user.settings?.tradingViewApiKey || undefined,
             telegramBotToken: user.settings?.telegramBotToken || undefined
           },
@@ -154,6 +160,9 @@ export class AuthService {
         role: 'user', // Default to user role since role field doesn't exist
         settings: user.settings ? {
           openaiApiKey: user.settings.openaiApiKey ?? undefined,
+          openaiOrganization: user.settings.openaiOrganization ?? undefined,
+          openaiProjectId: user.settings.openaiProjectId ?? undefined,
+          openaiModel: user.settings.openaiModel ?? 'gpt-3.5-turbo',
           tradingViewApiKey: user.settings.tradingViewApiKey ?? undefined, 
           telegramBotToken: user.settings.telegramBotToken ?? undefined
         } : undefined,

@@ -18,6 +18,9 @@ export interface AuthUser {
   role: 'user' | 'admin';
   settings?: {
     openaiApiKey?: string;
+    openaiOrganization?: string;
+    openaiProjectId?: string;
+    openaiModel?: string;
     tradingViewApiKey?: string;
     telegramBotToken?: string;
   };

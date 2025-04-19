@@ -1,0 +1,9 @@
+---
+description: When .env needs to be changed or inspected.
+globs: 
+alwaysApply: false
+---
+
+## Restict editing of .env variables unless required to secure 'key':'value' pairs and routes related to executabled and output dirs. Use code make changes, commands to create workflows.
+- [schema.prisma](mdc:prisma/schema.prisma) you can varify the .env with the database schema to ensure async reliablity.
+- When changes to the .env lead to breaking changes through the codebase, restore previous version and reframe the changes so that does not happen.

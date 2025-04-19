@@ -3,6 +3,8 @@ import OpenAI from 'openai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/server/db';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
 interface UserSettings {
   openaiApiKey: string | null;
@@ -11,8 +13,16 @@ interface UserSettings {
   openaiModel: string | null;
 }
 
-// Set the runtime to edge for best performance
-export const runtime = 'edge';
+// Create a new ratelimiter instance
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '1m'), // 10 requests per minute
+  analytics: true,
+});
+
+// Constants for token limits
+const MAX_INPUT_TOKENS = 4000;
+const MAX_OUTPUT_TOKENS = 1000;
 
 export async function POST(request: Request) {
   try {
@@ -22,6 +32,18 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Apply rate limiting
+    const { success, reset } = await ratelimit.limit(session.user.id);
+    if (!success) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded',
+          resetAt: reset
+        },
+        { status: 429 }
       );
     }
 
@@ -53,6 +75,30 @@ export async function POST(request: Request) {
       );
     }
 
+    // Calculate total input tokens (rough estimate)
+    const totalInputTokens = messages.reduce((acc, msg) => 
+      acc + (msg.content?.length || 0) / 4, 0);
+
+    if (totalInputTokens > MAX_INPUT_TOKENS) {
+      return NextResponse.json(
+        { error: 'Input text too long' },
+        { status: 400 }
+      );
+    }
+
+    // Check content moderation
+    const lastMessage = messages[messages.length - 1];
+    const moderationResponse = await openai.moderations.create({
+      input: lastMessage.content,
+    });
+
+    if (moderationResponse.results[0]?.flagged) {
+      return NextResponse.json(
+        { error: 'Content flagged as inappropriate' },
+        { status: 400 }
+      );
+    }
+
     const response = await openai.chat.completions.create({
       model: userSettings.openaiModel ?? 'gpt-3.5-turbo',
       messages: messages.map((message: any) => ({
@@ -60,10 +106,21 @@ export async function POST(request: Request) {
         content: message.content,
       })),
       temperature: 0.7,
-      max_tokens: 500,
+      max_tokens: MAX_OUTPUT_TOKENS,
     });
 
     const reply = response.choices[0].message;
+
+    // Log the interaction for monitoring
+    await prisma.chatLog.create({
+      data: {
+        userId: session.user.id,
+        input: lastMessage.content,
+        output: reply.content || '',
+        model: userSettings.openaiModel || 'gpt-3.5-turbo',
+        timestamp: new Date(),
+      },
+    });
 
     return NextResponse.json({
       role: reply.role,

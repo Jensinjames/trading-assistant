@@ -16,6 +16,8 @@ export const env = createEnv({
     EMAIL_PORT: z.string().min(1),
     EMAIL_USER: z.string().email(),
     EMAIL_PASS: z.string().min(1),
+    UPSTASH_REDIS_URL: z.string().min(1),
+    UPSTASH_REDIS_TOKEN: z.string().min(1),
   },
   client: {
     // Add client-side environment variables here if needed
@@ -34,6 +36,8 @@ export const env = createEnv({
     EMAIL_PORT: process.env.EMAIL_PORT,
     EMAIL_USER: process.env.EMAIL_USER,
     EMAIL_PASS: process.env.EMAIL_PASS,
+    UPSTASH_REDIS_URL: process.env.UPSTASH_REDIS_URL,
+    UPSTASH_REDIS_TOKEN: process.env.UPSTASH_REDIS_TOKEN,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 }); 
