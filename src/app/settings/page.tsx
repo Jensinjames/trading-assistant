@@ -13,6 +13,7 @@ const defaultSettings: Settings = {
   openaiModel: 'gpt-3.5-turbo',
   openaiOrganization: '',
   openaiProjectId: '',
+  aiProvider: 'openai',
 };
 
 export default function SettingsPage() {
@@ -45,6 +46,7 @@ export default function SettingsPage() {
           openaiModel: data.openaiModel || 'gpt-3.5-turbo',
           openaiOrganization: data.openaiOrganization || '',
           openaiProjectId: data.openaiProjectId || '',
+          aiProvider: data.aiProvider || 'openai',
         });
       } catch (err) {
         console.error('Error fetching settings:', err);
@@ -57,7 +59,7 @@ export default function SettingsPage() {
     fetchSettings();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setSettings(prev => ({
       ...prev,
@@ -185,174 +187,125 @@ export default function SettingsPage() {
     }
 
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-8">
-        <div className="container mx-auto px-4 max-w-2xl">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
-            <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
-              Settings
-            </h1>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-6">Settings</h1>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">OpenAI Configuration</h2>
             
-            <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-                  API Keys
-                </h2>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-100">
-                    OpenAI API Key
-                  </label>
-                  <input
-                    type="password"
-                    name="openaiApiKey"
-                    value={settings.openaiApiKey}
-                    onChange={handleChange}
-                    className="w-full p-3 border-2 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 
-                             text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-300
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 
-                             dark:focus:border-blue-400 transition-colors"
-                    placeholder="sk-..."
-                  />
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-200">
-                    Required for AI-powered trading suggestions
-                  </p>
-                </div>
+            <div>
+              <label htmlFor="openaiApiKey" className="block text-sm font-medium text-gray-700">
+                API Key
+              </label>
+              <input
+                type="password"
+                id="openaiApiKey"
+                name="openaiApiKey"
+                value={settings.openaiApiKey || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-100">
-                    TradingView API Key
-                  </label>
-                  <input
-                    type="password"
-                    name="tradingViewApiKey"
-                    value={settings.tradingViewApiKey}
-                    onChange={handleChange}
-                    className="w-full p-3 border-2 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 
-                             text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-300
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 
-                             dark:focus:border-blue-400 transition-colors"
-                    placeholder="Enter your TradingView API key"
-                  />
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-200">
-                    Required for market data and charts
-                  </p>
-                </div>
+            <div>
+              <label htmlFor="tradingViewApiKey" className="block text-sm font-medium text-gray-700">
+                TradingView API Key
+              </label>
+              <input
+                type="password"
+                id="tradingViewApiKey"
+                name="tradingViewApiKey"
+                value={settings.tradingViewApiKey || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-100">
-                    Telegram Bot Token
-                  </label>
-                  <input
-                    type="password"
-                    name="telegramBotToken"
-                    value={settings.telegramBotToken}
-                    onChange={handleChange}
-                    className="w-full p-3 border-2 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 
-                             text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-300
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 
-                             dark:focus:border-blue-400 transition-colors"
-                    placeholder="123456:ABC-DEF..."
-                  />
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-200">
-                    Required for Telegram notifications
-                  </p>
-                </div>
+            <div>
+              <label htmlFor="telegramBotToken" className="block text-sm font-medium text-gray-700">
+                Telegram Bot Token
+              </label>
+              <input
+                type="password"
+                id="telegramBotToken"
+                name="telegramBotToken"
+                value={settings.telegramBotToken || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-100">
-                    OpenAI Model
-                  </label>
-                  <div className="flex space-x-2">
-                    <select
-                      value={settings.openaiModel}
-                      onChange={(e) => setSettings({ ...settings, openaiModel: e.target.value })}
-                      className="flex-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
-                      aria-label="Select OpenAI Model"
-                    >
-                      {models.map((model) => (
-                        <option key={model.id} value={model.id}>
-                          {model.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={fetchModels}
-                      disabled={isLoading || !settings.openaiApiKey}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      Load Models
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-100">
-                    OpenAI Organization ID
-                  </label>
-                  <input
-                    type="text"
-                    name="openaiOrganization"
-                    value={settings.openaiOrganization}
-                    onChange={handleChange}
-                    className="w-full p-3 border-2 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 
-                             text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-300
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 
-                             dark:focus:border-blue-400 transition-colors"
-                    placeholder="org-..."
-                  />
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-200">
-                    Your OpenAI organization ID
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-800 dark:text-gray-100">
-                    OpenAI Project ID
-                  </label>
-                  <input
-                    type="text"
-                    name="openaiProjectId"
-                    value={settings.openaiProjectId}
-                    onChange={handleChange}
-                    className="w-full p-3 border-2 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 
-                             text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-300
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 
-                             dark:focus:border-blue-400 transition-colors"
-                    placeholder="proj-..."
-                  />
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-200">
-                    Your OpenAI project ID
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-6">
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className={`w-full py-3 px-4 rounded-lg text-white font-medium text-lg transition-all
-                    ${isSaving 
-                      ? 'bg-blue-400 dark:bg-blue-500 cursor-not-allowed opacity-70'
-                      : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 shadow-lg hover:shadow-xl'
-                    }`}
-                >
-                  {isSaving ? 'Saving...' : 'Save Settings'}
-                </button>
-              </div>
-            </form>
-
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full py-3 px-4 rounded-lg text-white font-medium text-lg transition-all
-                  bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 shadow-lg hover:shadow-xl"
+            <div>
+              <label htmlFor="openaiModel" className="block text-sm font-medium text-gray-700">
+                Model
+              </label>
+              <select
+                id="openaiModel"
+                name="openaiModel"
+                value={settings.openaiModel || 'gpt-3.5-turbo'}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               >
-                Log Out
-              </button>
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                <option value="gpt-4">GPT-4</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="openaiOrganization" className="block text-sm font-medium text-gray-700">
+                Organization ID (optional)
+              </label>
+              <input
+                type="text"
+                id="openaiOrganization"
+                name="openaiOrganization"
+                value={settings.openaiOrganization || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="openaiProjectId" className="block text-sm font-medium text-gray-700">
+                Project ID (optional)
+              </label>
+              <input
+                type="text"
+                id="openaiProjectId"
+                name="openaiProjectId"
+                value={settings.openaiProjectId || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
             </div>
           </div>
-        </div>
+
+          <div className="flex justify-between items-center">
+            <button
+              type="submit"
+              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Save Settings
+            </button>
+            
+            <button
+              type="button"
+              onClick={testConnection}
+              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              Test Connection
+            </button>
+          </div>
+        </form>
+
+        {testResult && (
+          <div className={`mt-4 p-4 rounded-md ${testResult.success ? 'bg-green-100' : 'bg-red-100'}`}>
+            <p className={testResult.success ? 'text-green-700' : 'text-red-700'}>
+              {testResult.response}
+            </p>
+          </div>
+        )}
       </div>
     );
   };

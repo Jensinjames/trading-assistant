@@ -1,14 +1,12 @@
-import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Providers from "@/components/Providers";
 import "./globals.css";
-import { Providers } from '@/components/Providers';
-import { AuthProvider } from '@/context/AuthContext';
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "Trading Assistant",
-  description: "AI-powered trading assistant with voice capabilities",
+  description: "Your AI-powered trading companion",
 };
 
 export default function RootLayout({
@@ -17,12 +15,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          {children}
         </Providers>
       </body>
     </html>

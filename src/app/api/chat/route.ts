@@ -4,10 +4,10 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/server/db';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
-import { ChatService } from '@/services/chat';
 import { createChatThread } from '@/lib/messageStorage';
+import { ChatService } from '@/services/communication/chat';
+import { Settings } from '@/types/settings';
 
-// Create a new ratelimiter instance if Redis is configured
 let ratelimit: Ratelimit | null = null;
 try {
   const redis = Redis.fromEnv();
@@ -67,9 +67,21 @@ export async function POST(request: Request) {
     }
 
     // Create a new thread if none is provided
-    const actualThreadId = threadId || createChatThread(session.user.id, message).id;
+    let actualThreadId = threadId;
+    if (!threadId) {
+      const newThread = await createChatThread(session.user.id, message);
+      actualThreadId = newThread.id;
+    }
 
-    const chatService = new ChatService(userSettings);
+    // Ensure all required settings are present and non-null
+    if (!userSettings.openaiModel || !userSettings.openaiApiKey) {
+      return NextResponse.json(
+        { error: 'Required OpenAI settings are missing' },
+        { status: 400 }
+      );
+    }
+
+    const chatService = new ChatService(userSettings as Settings);
     const response = await chatService.processMessage(session.user.id, message, actualThreadId);
 
     return NextResponse.json({
@@ -84,4 +96,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-} 
+}

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/server/db';
 
 // Define settings file path - stored in a local JSON file
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -41,16 +44,23 @@ function writeSettings(data: Record<string, any>) {
 // GET handler for retrieving settings
 export async function GET() {
   try {
-    // Use a default user ID for now
-    const userId = 'default-user';
-    const allSettings = readSettings();
-    const userSettings = allSettings[userId] || {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const userSettings = await prisma.userSettings.findUnique({
+      where: { userId: session.user.id }
+    });
+
+    return NextResponse.json(userSettings || {
       openaiApiKey: '',
       tradingViewApiKey: '',
       telegramBotToken: '',
-    };
-
-    return NextResponse.json(userSettings);
+    });
   } catch (error) {
     console.error('Error in GET settings:', error);
     return NextResponse.json(
@@ -63,8 +73,14 @@ export async function GET() {
 // POST handler for updating settings
 export async function POST(request: Request) {
   try {
-    // Use a default user ID for now
-    const userId = 'default-user';
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const updatedSettings = await request.json();
     
     // Validate input
@@ -78,22 +94,17 @@ export async function POST(request: Request) {
       }
     }
 
-    // Update settings
-    const allSettings = readSettings();
-    allSettings[userId] = {
-      ...allSettings[userId],
-      ...updatedSettings,
-    };
+    // Update settings using Prisma upsert
+    const settings = await prisma.userSettings.upsert({
+      where: { userId: session.user.id },
+      update: updatedSettings,
+      create: {
+        ...updatedSettings,
+        userId: session.user.id
+      }
+    });
 
-    const success = writeSettings(allSettings);
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Failed to save settings' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(allSettings[userId]);
+    return NextResponse.json(settings);
   } catch (error) {
     console.error('Error in POST settings:', error);
     return NextResponse.json(

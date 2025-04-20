@@ -1,37 +1,78 @@
-import * as jose from 'jose';
+import jwt from 'jsonwebtoken'
+import { AuthUser } from '@/types/auth'
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key'
-);
-const TOKEN_EXPIRY = '24h';
-
-export interface JWTPayload extends jose.JWTPayload {
-  userId: string;
-  email?: string;
-  role?: string;
-  [key: string]: unknown;
+// Ensure JWT_SECRET is available
+const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET or NEXTAUTH_SECRET environment variable must be set')
 }
 
-export async function generateToken(payload: JWTPayload): Promise<string> {
-  return new jose.SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime(TOKEN_EXPIRY)
-    .sign(JWT_SECRET);
+export interface JWTPayload {
+  id: string
+  email: string
+  name?: string | null
+  role: string
 }
 
-export async function verifyToken(token: string): Promise<JWTPayload> {
+export interface JWTError {
+  message: string
+  code: 'token_expired' | 'token_invalid' | 'token_not_provided'
+}
+
+export type JWTVerifyResult = {
+  success: true
+  data: JWTPayload
+} | {
+  success: false
+  error: JWTError
+}
+
+export const signJwtToken = (user: AuthUser): string => {
+  const payload: JWTPayload = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role || 'user'
+  }
+
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: '1d', // Token expires in 1 day
+  })
+}
+
+export const verifyJwtToken = async (token?: string | null): Promise<JWTVerifyResult> => {
+  if (!token) {
+    return {
+      success: false,
+      error: {
+        message: 'No token provided',
+        code: 'token_not_provided'
+      }
+    }
+  }
+
   try {
-    const { payload } = await jose.jwtVerify(token, JWT_SECRET);
-    return payload as JWTPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
+    return {
+      success: true,
+      data: decoded
+    }
   } catch (error) {
-    throw new Error('Invalid token');
+    if (error instanceof jwt.TokenExpiredError) {
+      return {
+        success: false,
+        error: {
+          message: 'Token has expired',
+          code: 'token_expired'
+        }
+      }
+    }
+    return {
+      success: false,
+      error: {
+        message: 'Invalid token',
+        code: 'token_invalid'
+      }
+    }
   }
 }
-
-export async function decodeToken(token: string): Promise<JWTPayload | null> {
-  try {
-    return jose.decodeJwt(token) as JWTPayload;
-  } catch {
-    return null;
-  }
-} 

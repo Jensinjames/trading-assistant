@@ -18,7 +18,7 @@ export const settingsRouter = createTRPCRouter({
           openaiModel: true,
           tradingViewApiKey: true,
           telegramBotToken: true,
-        } satisfies Prisma.UserSettingsSelect,
+        },
       });
 
       const typedSettings: Settings = {
@@ -60,7 +60,7 @@ export const settingsRouter = createTRPCRouter({
             openaiModel: true,
             tradingViewApiKey: true,
             telegramBotToken: true,
-          } satisfies Prisma.UserSettingsSelect,
+          },
         });
 
         const typedSettings: Settings = {

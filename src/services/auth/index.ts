@@ -1,11 +1,10 @@
-import { generateToken, verifyToken } from '@/lib/jwt';
-import { AuthUser, AuthResponse, AuthError } from '@/types/auth';
+import { signJwtToken, verifyJwtToken } from '@/lib/jwt';
+import { AuthUser, AuthResponse, Role } from '@/types/auth';
+import { IAuthService } from '@/types/services';
 import { hash, compare } from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-
-// Initialize Prisma client
-const prisma = new PrismaClient();
+import { prisma } from '@/server/db';
+import type { Settings } from '@/types/settings';
 
 // Password validation schema
 const passwordSchema = z.string()
@@ -15,8 +14,20 @@ const passwordSchema = z.string()
   .regex(/[0-9]/, 'Password must contain at least one number')
   .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
 
-export class AuthService {
-  static async signUp(email: string, password: string, name: string): Promise<AuthResponse> {
+const DEFAULT_ROLE: Role = 'user';
+
+const mapUserSettings = (settings: any): Settings => ({
+  openaiApiKey: settings?.openaiApiKey ?? null,
+  openaiOrganization: settings?.openaiOrganization ?? null,
+  openaiProjectId: settings?.openaiProjectId ?? null,
+  openaiModel: settings?.openaiModel ?? 'gpt-3.5-turbo',
+  tradingViewApiKey: settings?.tradingViewApiKey ?? null,
+  telegramBotToken: settings?.telegramBotToken ?? null,
+  aiProvider: settings?.aiProvider ?? 'openai',
+});
+
+export class AuthService implements IAuthService {
+  async signUp(email: string, password: string, name: string): Promise<AuthResponse> {
     try {
       // Check if user exists
       const existingUser = await prisma.user.findUnique({
@@ -47,17 +58,19 @@ export class AuthService {
           email,
           name,
           password: hashedPassword,
+          role: DEFAULT_ROLE,
         },
         include: {
           settings: true,
         },
       });
 
-      // Generate token with appropriate claims
-      const token = await generateToken({
-        userId: user.id,
+      // Generate token
+      const token = signJwtToken({
+        id: user.id,
         email: user.email!,
-        role: 'user', // Default role for new users
+        name: user.name!,
+        role: DEFAULT_ROLE,
       });
 
       return {
@@ -65,15 +78,8 @@ export class AuthService {
           id: user.id,
           email: user.email!,
           name: user.name!,
-          role: 'user', // Default role since role field doesn't exist on User model
-          settings: {
-            openaiApiKey: user.settings?.openaiApiKey || undefined,
-            openaiOrganization: user.settings?.openaiOrganization || undefined,
-            openaiProjectId: user.settings?.openaiProjectId || undefined,
-            openaiModel: user.settings?.openaiModel || 'gpt-3.5-turbo',
-            tradingViewApiKey: user.settings?.tradingViewApiKey || undefined, 
-            telegramBotToken: user.settings?.telegramBotToken || undefined
-          },
+          role: DEFAULT_ROLE,
+          settings: user.settings ? mapUserSettings(user.settings) : undefined,
         },
         token,
       };
@@ -86,7 +92,7 @@ export class AuthService {
     }
   }
 
-  static async login(email: string, password: string): Promise<AuthResponse> {
+  async login(email: string, password: string): Promise<AuthResponse> {
     try {
       // Find user
       const user = await prisma.user.findUnique({
@@ -100,17 +106,20 @@ export class AuthService {
         throw { message: 'Invalid credentials', code: 'INVALID_CREDENTIALS' };
       }
 
-      // Verify password with timing attack protection
+      // Verify password
       const isValid = await compare(password, user.password);
       if (!isValid) {
         throw { message: 'Invalid credentials', code: 'INVALID_CREDENTIALS' };
       }
 
-      // Generate token with appropriate claims
-      const token = await generateToken({
-        userId: user.id,
+      const role = (user.role === 'admin' ? 'admin' : 'user') as Role;
+
+      // Generate token
+      const token = signJwtToken({
+        id: user.id,
         email: user.email!,
-        role: 'user', // Default role since role field doesn't exist on User model
+        name: user.name!,
+        role,
       });
 
       return {
@@ -118,15 +127,8 @@ export class AuthService {
           id: user.id,
           email: user.email!,
           name: user.name!,
-          role: 'user', // Default role since role field doesn't exist on User model
-          settings: {
-            openaiApiKey: user.settings?.openaiApiKey || undefined,
-            openaiOrganization: user.settings?.openaiOrganization || undefined,
-            openaiProjectId: user.settings?.openaiProjectId || undefined,
-            openaiModel: user.settings?.openaiModel || 'gpt-3.5-turbo',
-            tradingViewApiKey: user.settings?.tradingViewApiKey || undefined,
-            telegramBotToken: user.settings?.telegramBotToken || undefined
-          },
+          role,
+          settings: user.settings ? mapUserSettings(user.settings) : undefined,
         },
         token,
       };
@@ -138,12 +140,16 @@ export class AuthService {
     }
   }
 
-  static async validateToken(token: string): Promise<AuthUser> {
+  async validateToken(token: string): Promise<AuthUser> {
     try {
-      const decoded = await verifyToken(token);
+      const result = await verifyJwtToken(token);
+      
+      if (!result.success) {
+        throw { message: result.error.message, code: result.error.code };
+      }
       
       const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
+        where: { id: result.data.id },
         include: {
           settings: true,
         },
@@ -153,19 +159,14 @@ export class AuthService {
         throw { message: 'User not found', code: 'USER_NOT_FOUND' };
       }
 
+      const role = (user.role === 'admin' ? 'admin' : 'user') as Role;
+
       return {
         id: user.id,
         email: user.email!,
         name: user.name ?? '',
-        role: 'user', // Default to user role since role field doesn't exist
-        settings: user.settings ? {
-          openaiApiKey: user.settings.openaiApiKey ?? undefined,
-          openaiOrganization: user.settings.openaiOrganization ?? undefined,
-          openaiProjectId: user.settings.openaiProjectId ?? undefined,
-          openaiModel: user.settings.openaiModel ?? 'gpt-3.5-turbo',
-          tradingViewApiKey: user.settings.tradingViewApiKey ?? undefined, 
-          telegramBotToken: user.settings.telegramBotToken ?? undefined
-        } : undefined,
+        role,
+        settings: user.settings ? mapUserSettings(user.settings) : undefined,
       };
     } catch (error: any) {
       throw {
@@ -174,4 +175,4 @@ export class AuthService {
       };
     }
   }
-} 
+}

@@ -1,15 +1,18 @@
 "use client";
 
-import React from 'react';
-import { ThemeProvider } from 'next-themes';
-import SearchParamsWrapper from './SearchParamsWrapper';
+import { ReactNode } from "react";
+import { SessionProvider } from "next-auth/react";
+import { Toaster } from "react-hot-toast";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+interface ProvidersProps {
+  children: ReactNode;
+}
+
+export default function Providers({ children }: ProvidersProps) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark">
-      <SearchParamsWrapper>
-        {children}
-      </SearchParamsWrapper>
-    </ThemeProvider>
+    <SessionProvider>
+      {children}
+      <Toaster />
+    </SessionProvider>
   );
-} 
+}

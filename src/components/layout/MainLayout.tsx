@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { 
   HomeIcon, 
   ChartBarSquareIcon as TrendingUpIcon, 
@@ -15,7 +16,8 @@ import {
   MoonIcon,
   BellIcon,
   ChatBubbleLeftRightIcon,
-  BuildingOfficeIcon
+  BuildingOfficeIcon,
+  ArrowRightStartOnRectangleIcon as ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 
 interface MainLayoutProps {
@@ -24,6 +26,7 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const pathname = usePathname();
+  const { logout } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLiveUpdates, setIsLiveUpdates] = useState(true);
 
@@ -141,6 +144,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 aria-label={isLiveUpdates ? "Disable live updates" : "Enable live updates"}
               >
                 <BellIcon className="h-5 w-5" />
+              </button>
+
+              <button 
+                onClick={logout}
+                className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                aria-label="Logout"
+              >
+                <ArrowRightOnRectangleIcon className="h-5 w-5" />
               </button>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/server/db';
-import { ChatService } from '@/services/chat';
+import { ChatService } from '@/services/communication/chat';
 
 // GET /api/chat/threads/[threadId]/messages - Get all messages in a thread
 export async function GET(

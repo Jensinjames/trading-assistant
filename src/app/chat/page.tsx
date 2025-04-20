@@ -107,7 +107,7 @@ function ChatContent() {
       const response = await fetch('/api/chat/threads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initialMessage: '' })
+        body: JSON.stringify({ message: '' })
       });
       
       if (!response.ok) {

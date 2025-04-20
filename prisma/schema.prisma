@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "./node_modules/.prisma/client"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -53,6 +53,8 @@ model User {
   settings           UserSettings?
   chatLogs           ChatLog[]
   messages           Message[]
+  chatThreads        ChatThread[]
+  reactions          Reaction[]
 }
 
 model UserSettings {
@@ -175,15 +177,64 @@ model PerformanceMetrics {
   @@index([strategyId, period, startDate])
 }
 
-model Message {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  threadId  String?
-  role      String
-  content   String   @db.Text
-  createdAt DateTime @default(now())
+model Assistant {
+  id           String       @id @default(cuid())
+  name         String
+  description  String?
+  model        String      @default("gpt-3.5-turbo")
+  systemPrompt String      @db.Text
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  messages     Message[]
+  threads      ChatThread[]
+}
+
+model ChatThread {
+  id          String    @id @default(cuid())
+  userId      String
+  assistantId String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assistant   Assistant @relation(fields: [assistantId], references: [id])
+  title       String
+  messages    Message[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([userId, createdAt])
-  @@index([threadId, createdAt])
+}
+
+model Message {
+  id          String      @id @default(cuid())
+  content     String
+  role        String
+  userId      String
+  threadId    String
+  assistantId String?
+  category    String      @default("general")
+  isEdited    Boolean     @default(false)
+  imageUrl    String?     // Add support for image attachments
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  reactions   Reaction[]
+  user        User        @relation(fields: [userId], references: [id])
+  thread      ChatThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  assistant   Assistant?  @relation(fields: [assistantId], references: [id])
+
+  @@index([userId])
+  @@index([threadId])
+  @@index([assistantId])
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  emoji     String
+  userId    String
+  messageId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId, emoji])
+  @@index([userId])
+  @@index([messageId])
 }

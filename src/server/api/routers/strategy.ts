@@ -108,7 +108,7 @@ export const strategyRouter = createTRPCRouter({
 
       const tradingView = new TradingViewService(ctx.session.user.id);
       const results = await Promise.all(
-        strategy.coins.map(async (coin) => {
+        strategy.coins.map(async (coin: string) => {
           const indicators = await tradingView.getIndicators(coin);
           const divergence = await tradingView.getRSIDivergence(coin);
 

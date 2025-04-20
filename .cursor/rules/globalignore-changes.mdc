@@ -1,0 +1,6 @@
+---
+description: When the .env file needs necessary configurations
+globs: 
+alwaysApply: false
+---
+The .env needs to be changed but you require changes to the .globalignore file. Never took database url's or jwt tokens. Leave unique variable alone so the application remains functional.

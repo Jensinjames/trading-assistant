@@ -1,11 +1,9 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
 import OpenAI from 'openai';
-import { env } from '@/env.mjs';
 import { TRPCError } from '@trpc/server';
 import { observable } from '@trpc/server/observable';
 import { prisma } from '@/server/db';
-import { type UserSettings } from '@prisma/client';
 
 export const chatRouter = createTRPCRouter({
   streamChat: protectedProcedure

@@ -144,10 +144,35 @@ Current values:
   private async sendChatMessage(
     notification: AlertNotification
   ): Promise<void> {
+    // Get or create a dedicated alerts thread for the user
+    let alertThread = await prisma.chatThread.findFirst({
+      where: {
+        userId: notification.userId,
+        title: 'Trading Alerts'
+      }
+    });
+
+    if (!alertThread) {
+      alertThread = await prisma.chatThread.create({
+        data: {
+          userId: notification.userId,
+          title: 'Trading Alerts',
+          messages: {
+            create: {
+              userId: notification.userId,
+              role: 'assistant',
+              content: 'This is your dedicated thread for trading alerts. You will receive all your alert notifications here.'
+            }
+          }
+        }
+      });
+    }
+
     // Store the notification in the database to be picked up by the chat interface
     await prisma.message.create({
       data: {
         userId: notification.userId,
+        threadId: alertThread.id,
         role: 'assistant',
         content: `🚨 ${notification.title}\n\n${notification.message}`,
       },
