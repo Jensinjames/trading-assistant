@@ -81,7 +81,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const chatService = new ChatService(userSettings as Settings);
+    const chatService = new ChatService({
+      ...userSettings,
+      aiProvider: 'openai'  // Default to OpenAI since we're checking for OpenAI settings
+    } as Settings);
     const response = await chatService.processMessage(session.user.id, message, actualThreadId);
 
     return NextResponse.json({

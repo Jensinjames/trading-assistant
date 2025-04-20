@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import OpenAI from 'openai';
-import { Assistant, ChatMessage, ChatThread } from '@/types/assistant';
+import type { Assistant, ChatThread, ChatMessage, AssistantRole, MessageCategory } from '@/types/assistant';
 
 export class AssistantService {
   private prisma: PrismaClient;
@@ -15,79 +15,108 @@ export class AssistantService {
 
   async createAssistant(data: {
     name: string;
-    description?: string;
+    description?: string | null;
     model?: string;
     systemPrompt: string;
   }): Promise<Assistant> {
-    return this.prisma.assistant.create({
+    const assistant = await this.prisma.assistant.create({
       data: {
         ...data,
         model: data.model || 'gpt-3.5-turbo',
       },
     });
+
+    return {
+      ...assistant,
+      description: assistant.description || undefined,
+    };
   }
 
   async createThread(userId: string, assistantId: string, title: string): Promise<ChatThread> {
-    return this.prisma.chatThread.create({
+    const thread = await this.prisma.chatThread.create({
       data: {
         userId,
         assistantId,
         title,
       },
       include: {
-        messages: true,
-      },
+        messages: {
+          include: {
+            reactions: true
+          }
+        }
+      }
     });
+
+    return {
+      ...thread,
+      messages: thread.messages.map(msg => ({
+        ...msg,
+        reactions: msg.reactions || [],
+        role: msg.role as AssistantRole,
+        category: (msg.category || 'general') as MessageCategory,
+        assistantId: msg.assistantId || undefined,
+      }))
+    };
   }
 
   async sendMessage(threadId: string, content: string): Promise<ChatMessage> {
     const thread = await this.prisma.chatThread.findUnique({
       where: { id: threadId },
       include: {
-        messages: true,
-        assistant: true,
-      },
+        messages: {
+          include: {
+            reactions: true
+          }
+        },
+        assistant: true
+      }
     });
 
-    if (!thread) throw new Error('Thread not found');
+    if (!thread) {
+      throw new Error('Thread not found');
+    }
 
-    // Create user message
-    const userMessage = await this.prisma.message.create({
-      data: {
-        threadId,
-        userId: thread.userId,
-        content,
-        role: 'user',
-      },
+    // Get previous messages
+    const messages = thread.messages.map(msg => ({
+      role: msg.role as 'user' | 'assistant' | 'system',
+      content: msg.content
+    }));
+
+    // Add new message
+    messages.push({
+      role: 'user',
+      content
     });
 
-    // Prepare conversation history for OpenAI
-    const messages = [
-      { role: 'system', content: thread.assistant.systemPrompt },
-      ...thread.messages.map(msg => ({
-        role: msg.role as 'user' | 'assistant' | 'system',
-        content: msg.content,
-      })),
-      { role: 'user', content },
-    ];
-
-    // Get assistant response
+    // Get completion from OpenAI
     const completion = await this.openai.chat.completions.create({
       model: thread.assistant.model,
-      messages,
+      messages: messages as Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
     });
 
     // Save assistant response
-    const assistantMessage = await this.prisma.message.create({
+    const response = completion.choices[0].message;
+    const message = await this.prisma.message.create({
       data: {
         threadId,
         userId: thread.userId,
         assistantId: thread.assistantId,
-        content: completion.choices[0].message?.content || '',
-        role: 'assistant',
+        role: response.role,
+        content: response.content || '',
+        category: 'general'
       },
+      include: {
+        reactions: true
+      }
     });
 
-    return assistantMessage;
+    return {
+      ...message,
+      reactions: message.reactions || [],
+      role: message.role as AssistantRole,
+      category: (message.category || 'general') as MessageCategory,
+      assistantId: message.assistantId || undefined,
+    };
   }
 }

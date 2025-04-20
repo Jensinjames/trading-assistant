@@ -6,7 +6,7 @@ import { type NextAuthOptions } from "next-auth";
 import { JWT } from "next-auth/jwt";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as any,
   providers: [
     CredentialsProvider({
       name: "credentials",

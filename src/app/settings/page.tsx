@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import MainLayout from '@/components/layout/MainLayout';
-import { Settings, OpenAIModel, OpenAITestResult } from '@/types/settings';
+import { Settings, OpenAITestResult } from '@/types/settings';
 import { useAuth } from '@/context/AuthContext';
 
 const defaultSettings: Settings = {
@@ -17,11 +17,9 @@ const defaultSettings: Settings = {
 };
 
 export default function SettingsPage() {
-  const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
-  const [models, setModels] = useState<OpenAIModel[]>([]);
   const [testResult, setTestResult] = useState<OpenAITestResult | null>(null);
   const { logout } = useAuth();
 
@@ -69,7 +67,6 @@ export default function SettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSaving(true);
     
     try {
       const response = await fetch('/api/settings', {
@@ -89,8 +86,6 @@ export default function SettingsPage() {
     } catch (err) {
       console.error('Error saving settings:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to save settings');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -114,7 +109,6 @@ export default function SettingsPage() {
       }
       
       const data = await response.json();
-      setModels(data.models);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch models');
     } finally {

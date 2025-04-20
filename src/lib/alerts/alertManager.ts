@@ -144,6 +144,16 @@ Current values:
   private async sendChatMessage(
     notification: AlertNotification
   ): Promise<void> {
+    // Get the default assistant
+    const defaultAssistant = await prisma.assistant.findFirst({
+      where: { id: 'default-assistant' }
+    });
+
+    if (!defaultAssistant) {
+      console.error('Default assistant not found');
+      return;
+    }
+
     // Get or create a dedicated alerts thread for the user
     let alertThread = await prisma.chatThread.findFirst({
       where: {
@@ -156,6 +166,7 @@ Current values:
       alertThread = await prisma.chatThread.create({
         data: {
           userId: notification.userId,
+          assistantId: defaultAssistant.id,
           title: 'Trading Alerts',
           messages: {
             create: {
@@ -173,6 +184,7 @@ Current values:
       data: {
         userId: notification.userId,
         threadId: alertThread.id,
+        assistantId: defaultAssistant.id,
         role: 'assistant',
         content: `🚨 ${notification.title}\n\n${notification.message}`,
       },

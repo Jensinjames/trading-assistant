@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/server/db';
 import { ChatService } from '@/services/communication/chat';
+import { Settings } from '@/types/settings';
 
 // GET /api/chat/threads/[threadId]/messages - Get all messages in a thread
 export async function GET(
@@ -84,7 +85,10 @@ export async function POST(
       );
     }
 
-    const chatService = new ChatService(userSettings);
+    const chatService = new ChatService({
+      ...userSettings,
+      aiProvider: 'openai'  // Default to OpenAI since we're checking for OpenAI settings
+    } as Settings);
     const response = await chatService.processMessage(session.user.id, content, threadId);
 
     return NextResponse.json(response);

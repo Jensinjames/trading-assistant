@@ -1,12 +1,11 @@
 import { AuthService } from './auth';
 import { ChatService } from './communication/chat';
-import { OpenAIService } from './ai/openai';
 import type { Settings } from '@/types/settings';
 
 export class ServiceRegistry {
   private static instance: ServiceRegistry;
   private authService: AuthService;
-  private chatService: ChatService;
+  private chatService: ChatService | null = null;
 
   private constructor() {
     this.authService = new AuthService();
